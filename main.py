@@ -1,7 +1,7 @@
 import psycopg2
 
 # Datos del servidor
-conn = psycopg2.connect(host="servicio.ca", database="principal", user="postgres", password="abc123", port="5433", connect_timeout=4)
+conn = psycopg2.connect(host="host", database="database", user="user", password="password", port="port", connect_timeout=4)
 
 def getCursor():
   try:
