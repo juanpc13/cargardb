@@ -1,45 +1,49 @@
 import psycopg2
-try:
-    connection = psycopg2.connect(user = "user",
-                                  password = "pass!",
-                                  host = "192.168.1.251",
-                                  port = "5432",
-                                  database = "dbname")    
 
-except (Exception, psycopg2.Error) as error :
-    print ("Error while connecting to PostgreSQL", error)
+# Datos del servidor
+conn = psycopg2.connect(host="servicio.ca", database="principal", user="postgres", password="abc123", port="5433", connect_timeout=4)
 
+def getCursor():
+  try:
+    cur = conn.cursor()
+    return cur
+  except (Exception, psycopg2.DatabaseError) as error:
+    print(error)
+    return None
 
-# dataFile = open('test', 'r')
-dataFile = open('prototipo2-db.sql', 'r')
-query = 'INSERT INTO public.acelerometro VALUES'
+# Archivo TXT
+dataFile = open('DATALOG.TXT', 'r')
+
+# Iteracion de linea
 count=0
 startLine = 0
 
-def modQuery(txtQuery):
-    modQuery = 'INSERT INTO acelerometro(id_dispositivo, x, y, z, date_time) VALUES('
-    txtQuery = txtQuery.split('(')
-    txtQuery = txtQuery[1]
-    txtQuery = txtQuery.split(')')
-    txtQuery = txtQuery[0]
-    txtQuery = txtQuery.split(',')
-    i = 0
-    for txtValue in txtQuery:
-        if i != 0:
-            modQuery += txtValue + ','
-        i += 1
-    modQuery = modQuery[:-1]
-    modQuery += ');'
-    return modQuery
+# Datos del SQL
+idInvestigacion = 3
+
+## METODOS
+def makeQuery(line):
+    newQuery = 'INSERT INTO humedad_relativa(id_investigacion, rh, fecha_registrado) VALUES ($, $, $);'
+    arrayData = line.split(',')
+    timestamp = arrayData[0].split('/')
+    timestamp = "'20" + timestamp[2] + '-' + timestamp[1] + '-' + timestamp[0] + ' ' + arrayData[1] + "'"
+    # Asignado idInvestigacion
+    newQuery = newQuery.replace('$', str(idInvestigacion), 1)
+    # Asignado temperatura
+    newQuery = newQuery.replace('$', str(arrayData[6]), 1)
+    # Asignado la fecha
+    newQuery = newQuery.replace('$', timestamp, 1)
+    return newQuery
 
 with dataFile as f:
+    cursor = conn.cursor()
     for line in f:
-        count+=1
-        if query in line and count >= startLine:
-            cursor = connection.cursor()
-            line = modQuery(line)
-            print('Count=', count, ' SQL', line)
-            cursor.execute(line)
-            connection.commit()            
+        count += 1
+        query = makeQuery(line)        
+        cursor.execute(query)
+        print('Count=', count, ' SQL', query)
+    conn.commit()
+    cursor.close()
 
 dataFile.close()
+
